@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>天気PWA</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- PWA用 -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</head>
+<body>
+    <a class="widget-container">
+      <a class="weatherwidget-io"
+         href="https://forecast7.com/ja/35d69139d69/tokyo/"
+         data-label_1="東京"
+         data-label_2="WEATHER"
+         data-font="ヒラギノ角ゴ Pro W3"
+         data-icons="Climacons Animated"
+         data-theme="weather_one">
+         東京 WEATHER
+      </a>
+    <script>
+        // ウィジェット読み込み
+        !function(d,s,id){
+        var js,fjs=d.getElementsByTagName(s)[0];
+        if(!d.getElementById(id)){
+            js=d.createElement(s); js.id=id;
+            js.src='https://weatherwidget.io/js/widget.min.js';
+            fjs.parentNode.insertBefore(js,fjs);
+        }
+        }(document,'script','weatherwidget-io-js');
+    </script>
+</body>
+</html>

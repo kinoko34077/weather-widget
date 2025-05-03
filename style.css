@@ -1,0 +1,32 @@
+@font-face {
+    font-family: 'HiraginoProW3';
+    src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP') format('truetype');
+    font-display: swap;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fff;
+    font-family: "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", sans-serif;
+  }
+  
+  /* ウィジェットの外枠（横幅指定、縦幅はアスペクト比に基づく） */
+  .widget-container {
+    width: min(0vw, 400px);   /* 最大横幅を画面幅の90%または400pxに制限 */
+    aspect-ratio: 4 / 5;        /* ← 横:縦の比率を指定（例：4:5なら縦長） */
+    max-height: 100vh;          /* 高さは画面全体以内に抑える */
+  }
+  
+  /* iframeにフィットさせる */
+  .weatherwidget-io, .widget-container iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+  }
+  
