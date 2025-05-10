@@ -1,32 +1,51 @@
-@font-face {
-    font-family: 'HiraginoProW3';
-    src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP') format('truetype');
-    font-display: swap;
-  }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  font-family: "Test_01", "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", sans-serif;
+  overflow: hidden;
+}
 
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
+/* スケール対象ラッパー */
+.widget-scale-wrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* 実際のウィジェットの枠 */
+.widget-container {
+  width: 400px; /* ← 最大幅をここで制限 */
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  transform-origin: center center;
+  transition: transform 0.3s ease;
+}
+
+/* 横幅が小さい場合はそのまま、超えたら拡大 */
+@media (min-width: 400px) {
+  .widget-scale-wrapper {
     justify-content: center;
     align-items: center;
-    background: #fff;
-    font-family: "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", sans-serif;
   }
-  
-  /* ウィジェットの外枠（横幅指定、縦幅はアスペクト比に基づく） */
   .widget-container {
-    width: min(0vw, 400px);   /* 最大横幅を画面幅の90%または400pxに制限 */
-    aspect-ratio: 4 / 5;        /* ← 横:縦の比率を指定（例：4:5なら縦長） */
-    max-height: 100vh;          /* 高さは画面全体以内に抑える */
+    transform: scale(calc(100vw / 400));  /* 画面幅に応じてスケーリング */
   }
-  
-  /* iframeにフィットさせる */
-  .weatherwidget-io, .widget-container iframe {
-    width: 100% !important;
-    height: 100% !important;
-    border: none;
-  }
-  
+}
+
+/* iframe対策 */
+.weatherwidget-io,
+.widget-container iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: block;
+}
