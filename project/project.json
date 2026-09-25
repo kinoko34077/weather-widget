@@ -3,7 +3,7 @@
   "project": {
     "name": "weather-widget",
     "type": "web-app",
-    "description": "Static weather widget with an existing installable PWA and offline service worker."
+    "description": "Static weather widget with retained PWA manifest and service-worker artifacts."
   },
   "profile": "web-app",
   "profiles": [
@@ -38,6 +38,7 @@
   },
   "notes": [
     "This adoption adds the KiNoTch Base and Project Overlay without replacing the existing PWA manifest, service worker, or static assets.",
-    "PWA behavior and browser data policy remain Project-owned."
+    "PWA behavior and browser data policy remain Project-owned.",
+    "The current HTML does not activate the checked-in PWA artifacts; installability is not claimed until a Project-owned browser check exists."
   ]
 }
