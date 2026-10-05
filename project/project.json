@@ -26,7 +26,16 @@
     "dev": "",
     "test": "",
     "build": "",
-    "verify": "",
+    "verify": {
+      "exec": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "tests/verify-static.ps1"
+      ],
+      "cwd": "project",
+      "forward_args": false
+    },
     "smoke": "",
     "deploy": ""
   },
