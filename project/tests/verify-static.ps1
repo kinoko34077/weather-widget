@@ -8,7 +8,7 @@ function Invoke-Case([string]$Name, [string]$IndexPath, [int]$ExpectedExitCode) 
     & pwsh -NoProfile -File $verifier -RootPath $repoRoot -IndexPath $IndexPath
     $actual = $LASTEXITCODE
     if ($actual -ne $ExpectedExitCode) {
-        throw "$Name: expected exit $ExpectedExitCode, got $actual"
+        throw "${Name}: expected exit $ExpectedExitCode, got $actual"
     }
     Write-Host "[weather-static-test] PASS $Name"
 }
