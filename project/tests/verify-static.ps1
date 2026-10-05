@@ -26,12 +26,14 @@ try {
     Invoke-Case -Name "missing embed fails" -IndexPath $missingEmbed -ExpectedExitCode 1
 
     $manifestActivated = Join-Path $tempDir "manifest-activated.html"
-    ($current -replace '</head>', '  <link rel="manifest" href="manifest.webmanifest" />' + [Environment]::NewLine + '</head>') |
+    $manifestReplacement = '  <link rel="manifest" href="manifest.webmanifest" />' + [Environment]::NewLine + '</head>'
+    ($current -replace '</head>', $manifestReplacement) |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $manifestActivated
     Invoke-Case -Name "manifest activation fails" -IndexPath $manifestActivated -ExpectedExitCode 1
 
     $serviceWorkerActivated = Join-Path $tempDir "service-worker-activated.html"
-    ($current -replace '</body>', '  <script>navigator.serviceWorker.register("./service-worker.js");</script>' + [Environment]::NewLine + '</body>') |
+    $serviceWorkerReplacement = '  <script>navigator.serviceWorker.register("./service-worker.js");</script>' + [Environment]::NewLine + '</body>'
+    ($current -replace '</body>', $serviceWorkerReplacement) |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $serviceWorkerActivated
     Invoke-Case -Name "service-worker activation fails" -IndexPath $serviceWorkerActivated -ExpectedExitCode 1
 }
