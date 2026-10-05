@@ -34,9 +34,9 @@ repository does not currently claim installability or offline behavior.
 
 ## Commands
 
-This static repository currently has no Project-owned setup, test, build, or
-deploy command registered. `knt verify` therefore completes without invoking a
-Project toolchain command.
+This static repository has no Project-owned setup, build, or deploy command.
+`knt verify` runs a Project-owned static contract test that checks the accepted
+weather embed and dormant-PWA boundary without browser automation.
 
 ## Constraints
 
@@ -45,5 +45,7 @@ Project toolchain command.
 - PWA activation, icon creation, service-worker registration, installability,
   and browser/offline verification are explicit future work and are not inferred
   from the retained artifacts.
+- The static verification gate is a regression check only; it does not activate
+  or claim browser/PWA behavior.
 - Existing active static Web behavior remains authoritative until such work is
   explicitly specified and verified.
