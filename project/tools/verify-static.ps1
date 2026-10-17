@@ -23,6 +23,8 @@ if (-not (Test-Path -LiteralPath $IndexPath -PathType Leaf)) {
 }
 else {
     $html = Get-Content -Raw -Encoding UTF8 -LiteralPath $IndexPath
+    # Ignore markup that is present only inside HTML comments.
+    $html = [regex]::Replace($html, '(?s)<!--.*?(?:-->|$)', '')
 
     if ($html -notmatch '(?is)class\s*=\s*["''][^"'']*\bweatherwidget-io\b') {
         Add-Failure "active weatherwidget-io anchor is missing"
