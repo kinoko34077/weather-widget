@@ -142,6 +142,11 @@ try {
     [System.IO.File]::WriteAllText($bogusDeclarationComment, $bogusDeclarationCommentMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "bogus declaration cannot expose commented contract markup" -IndexPath $bogusDeclarationComment -ExpectedExitCode 1
 
+    $malformedEndTagAnchor = Join-Path $tempDir "malformed-end-tag-commented-anchor.html"
+    [regex]::Replace($current, '(?is)(<a\b.*?</a>)', '</ $1') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagAnchor
+    Invoke-Case -Name "malformed end-tag open cannot expose commented anchor" -IndexPath $malformedEndTagAnchor -ExpectedExitCode 1
+
     $malformedDoctypeComment = Join-Path $tempDir "malformed-doctype-commented-contract.html"
     $malformedDoctypeCommentMarkup = '<!DOCTYPE "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
     [System.IO.File]::WriteAllText($malformedDoctypeComment, $malformedDoctypeCommentMarkup, [System.Text.UTF8Encoding]::new($false))
