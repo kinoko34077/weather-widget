@@ -57,6 +57,11 @@ try {
     [System.IO.File]::WriteAllText($commentBoundaryStylesheet, $commentBoundaryStylesheetMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "comment removal cannot synthesize a stylesheet link" -IndexPath $commentBoundaryStylesheet -ExpectedExitCode 1
 
+    $bogusCommentBoundaryStylesheet = Join-Path $tempDir "bogus-comment-boundary-synthesized-stylesheet.html"
+    $bogusCommentBoundaryStylesheetMarkup = $current.Replace('<link rel="stylesheet" href="style.css" />', '<<!bogus>link rel="stylesheet" href="style.css" />')
+    [System.IO.File]::WriteAllText($bogusCommentBoundaryStylesheet, $bogusCommentBoundaryStylesheetMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "bogus comment removal cannot synthesize a stylesheet link" -IndexPath $bogusCommentBoundaryStylesheet -ExpectedExitCode 1
+
     $unrelatedComment = Join-Path $tempDir "unrelated-comment.html"
     $current.Replace('</body>', '<!-- unrelated note --></body>') |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $unrelatedComment
