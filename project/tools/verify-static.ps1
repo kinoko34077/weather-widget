@@ -18,13 +18,18 @@ function Add-Failure([string]$Message) {
     [void]$failures.Add($Message)
 }
 
+function Test-HtmlWhitespace([char]$Character) {
+    $code = [int]$Character
+    return $code -eq 9 -or $code -eq 10 -or $code -eq 12 -or $code -eq 13 -or $code -eq 32
+}
+
 function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
     $state = 'before-attribute-name'
     for ($index = $StartIndex; $index -lt $Html.Length; $index++) {
         $character = $Html[$index]
 
         if ($state -eq 'before-attribute-name') {
-            if ([char]::IsWhiteSpace($character)) { continue }
+            if ((Test-HtmlWhitespace -Character $character)) { continue }
             if ($character -eq '>') { return $index }
             if ($character -eq '/') {
                 $state = 'self-closing-start-tag'
@@ -35,7 +40,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         }
 
         if ($state -eq 'attribute-name') {
-            if ([char]::IsWhiteSpace($character)) {
+            if ((Test-HtmlWhitespace -Character $character)) {
                 $state = 'after-attribute-name'
                 continue
             }
@@ -52,7 +57,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         }
 
         if ($state -eq 'after-attribute-name') {
-            if ([char]::IsWhiteSpace($character)) { continue }
+            if ((Test-HtmlWhitespace -Character $character)) { continue }
             if ($character -eq '>') { return $index }
             if ($character -eq '/') {
                 $state = 'self-closing-start-tag'
@@ -67,7 +72,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         }
 
         if ($state -eq 'before-attribute-value') {
-            if ([char]::IsWhiteSpace($character)) { continue }
+            if ((Test-HtmlWhitespace -Character $character)) { continue }
             if ($character -eq '>') { return $index }
             if ($character -eq [char]34) {
                 $state = 'attribute-value-double-quoted'
@@ -92,7 +97,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         }
 
         if ($state -eq 'attribute-value-unquoted') {
-            if ([char]::IsWhiteSpace($character)) {
+            if ((Test-HtmlWhitespace -Character $character)) {
                 $state = 'before-attribute-name'
                 continue
             }
@@ -101,7 +106,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         }
 
         if ($state -eq 'after-attribute-value-quoted') {
-            if ([char]::IsWhiteSpace($character)) {
+            if ((Test-HtmlWhitespace -Character $character)) {
                 $state = 'before-attribute-name'
                 continue
             }
@@ -134,18 +139,18 @@ function Find-HtmlStandardDoctypeEnd([string]$Html, [int]$StartIndex) {
     if (-not (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype')) { return -1 }
 
     $cursor = $StartIndex + 9
-    if ($cursor -ge $Html.Length -or -not [char]::IsWhiteSpace($Html[$cursor])) { return -1 }
-    while ($cursor -lt $Html.Length -and [char]::IsWhiteSpace($Html[$cursor])) { $cursor++ }
+    if ($cursor -ge $Html.Length -or -not (Test-HtmlWhitespace -Character $Html[$cursor])) { return -1 }
+    while ($cursor -lt $Html.Length -and (Test-HtmlWhitespace -Character $Html[$cursor])) { $cursor++ }
 
     $nameStart = $cursor
-    while ($cursor -lt $Html.Length -and -not [char]::IsWhiteSpace($Html[$cursor]) -and $Html[$cursor] -ne '>') {
+    while ($cursor -lt $Html.Length -and -not (Test-HtmlWhitespace -Character $Html[$cursor]) -and $Html[$cursor] -ne '>') {
         $cursor++
     }
     if ($cursor -eq $nameStart) { return -1 }
     $name = $Html.Substring($nameStart, $cursor - $nameStart)
     if ([string]::Compare($name, 'html', [System.StringComparison]::OrdinalIgnoreCase) -ne 0) { return -1 }
 
-    while ($cursor -lt $Html.Length -and [char]::IsWhiteSpace($Html[$cursor])) { $cursor++ }
+    while ($cursor -lt $Html.Length -and (Test-HtmlWhitespace -Character $Html[$cursor])) { $cursor++ }
     if ($cursor -ge $Html.Length -or $Html[$cursor] -ne '>') { return -1 }
     return $cursor
 }
@@ -165,7 +170,7 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
         if ($Html[$cursor] -eq '!' -and
             (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype') -and
             ($afterDoctypeIndex -ge $Html.Length -or
-             [char]::IsWhiteSpace($Html[$afterDoctypeIndex]) -or
+             (Test-HtmlWhitespace -Character $Html[$afterDoctypeIndex]) -or
              $Html[$afterDoctypeIndex] -eq '>')) {
             $isDoctype = $true
         }
@@ -199,7 +204,7 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     if ($cursor -ge $Html.Length -or -not (Test-HtmlAsciiAlpha -Character $Html[$cursor])) { return $null }
 
     $nameStart = $cursor
-    while ($cursor -lt $Html.Length -and -not [char]::IsWhiteSpace($Html[$cursor]) -and $Html[$cursor] -ne '/' -and $Html[$cursor] -ne '>') {
+    while ($cursor -lt $Html.Length -and -not (Test-HtmlWhitespace -Character $Html[$cursor]) -and $Html[$cursor] -ne '/' -and $Html[$cursor] -ne '>') {
         $cursor++
     }
     if ($cursor -eq $nameStart) { return $null }
@@ -288,7 +293,7 @@ function Find-HtmlRawTextEndTag([string]$Html, [string]$TagName, [int]$StartInde
         $candidate = $Html.IndexOf($needle, $searchIndex, [System.StringComparison]::OrdinalIgnoreCase)
         if ($candidate -lt 0) { return -1 }
         $afterName = $candidate + $needle.Length
-        if ($afterName -ge $Html.Length -or [char]::IsWhiteSpace($Html[$afterName]) -or $Html[$afterName] -eq '/' -or $Html[$afterName] -eq '>') {
+        if ($afterName -ge $Html.Length -or (Test-HtmlWhitespace -Character $Html[$afterName]) -or $Html[$afterName] -eq '/' -or $Html[$afterName] -eq '>') {
             return $candidate
         }
         $searchIndex = $candidate + 2
