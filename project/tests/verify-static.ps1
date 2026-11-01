@@ -52,6 +52,11 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $commentedStylesheet
     Invoke-Case -Name "commented stylesheet fails" -IndexPath $commentedStylesheet -ExpectedExitCode 1
 
+    $commentBoundaryStylesheet = Join-Path $tempDir "comment-boundary-synthesized-stylesheet.html"
+    $commentBoundaryStylesheetMarkup = $current.Replace('<link rel="stylesheet" href="style.css" />', '<<!-- stylesheet removed -->link rel="stylesheet" href="style.css" />')
+    [System.IO.File]::WriteAllText($commentBoundaryStylesheet, $commentBoundaryStylesheetMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "comment removal cannot synthesize a stylesheet link" -IndexPath $commentBoundaryStylesheet -ExpectedExitCode 1
+
     $unrelatedComment = Join-Path $tempDir "unrelated-comment.html"
     $current.Replace('</body>', '<!-- unrelated note --></body>') |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $unrelatedComment
