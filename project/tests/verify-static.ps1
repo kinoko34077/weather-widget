@@ -119,6 +119,12 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $attributeCommentMarker
     Invoke-Case -Name "attribute comment marker does not hide active service worker" -IndexPath $attributeCommentMarker -ExpectedExitCode 1
 
+    $scriptDoubleEscapeActiveManifest = Join-Path $tempDir "script-double-escape-active-manifest.html"
+    $scriptDoubleEscapeMarkup = '<script><!--<script></script><!-- </script><link rel="manifest" href="manifest.webmanifest"> --></script>' + [Environment]::NewLine + '</body>'
+    $current.Replace('</body>', $scriptDoubleEscapeMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $scriptDoubleEscapeActiveManifest
+    Invoke-Case -Name "script double-escape state does not hide active manifest" -IndexPath $scriptDoubleEscapeActiveManifest -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))

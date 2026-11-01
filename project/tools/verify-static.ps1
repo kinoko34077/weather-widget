@@ -65,7 +65,78 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     return @{ end = $end; name = $name; closing = $closing; declaration = $false; incomplete = $false }
 }
 
+function Test-HtmlNameBoundary([string]$Html, [int]$Index) {
+    if ($Index -ge $Html.Length) { return $false }
+    $character = $Html[$Index]
+    return $character -eq '>' -or $character -eq '/' -or $character -eq ' ' -or
+        $character -eq "`t" -or $character -eq "`n" -or $character -eq "`f" -or $character -eq "`r"
+}
+
+function Test-HtmlPrefix([string]$Html, [int]$Index, [string]$Prefix) {
+    if ($Index + $Prefix.Length -gt $Html.Length) { return $false }
+    return [string]::Compare($Html, $Index, $Prefix, 0, $Prefix.Length, [System.StringComparison]::OrdinalIgnoreCase) -eq 0
+}
+
+function Find-HtmlScriptEndTag([string]$Html, [int]$StartIndex) {
+    # Script data has escaped and double-escaped states; the first textual </script>
+    # can return to the escaped state without ending the element.
+    $state = 'data'
+    $index = $StartIndex
+    while ($index -lt $Html.Length) {
+        if ($state -ne 'data' -and $index + 2 -lt $Html.Length -and $Html.Substring($index, 3) -ceq '-->') {
+            $state = 'data'
+            $index += 3
+            continue
+        }
+
+        if ($Html[$index] -ne '<') {
+            $index++
+            continue
+        }
+
+        if ($state -eq 'data') {
+            if (Test-HtmlPrefix -Html $Html -Index $index -Prefix '<!--') {
+                $state = 'escaped'
+                $index += 4
+                continue
+            }
+            if ((Test-HtmlPrefix -Html $Html -Index $index -Prefix '</script') -and
+                (Test-HtmlNameBoundary -Html $Html -Index ($index + 8))) {
+                return $index
+            }
+        }
+        elseif ($state -eq 'escaped') {
+            if ((Test-HtmlPrefix -Html $Html -Index $index -Prefix '</script') -and
+                (Test-HtmlNameBoundary -Html $Html -Index ($index + 8))) {
+                return $index
+            }
+            if ((Test-HtmlPrefix -Html $Html -Index $index -Prefix '<script') -and
+                (Test-HtmlNameBoundary -Html $Html -Index ($index + 7))) {
+                $state = 'double-escaped'
+                $index += 7
+                continue
+            }
+        }
+        else {
+            if ((Test-HtmlPrefix -Html $Html -Index $index -Prefix '</script') -and
+                (Test-HtmlNameBoundary -Html $Html -Index ($index + 8))) {
+                $state = 'escaped'
+                $index += 8
+                continue
+            }
+        }
+
+        $index++
+    }
+
+    return -1
+}
+
 function Find-HtmlRawTextEndTag([string]$Html, [string]$TagName, [int]$StartIndex) {
+    if ($TagName -eq 'script') {
+        return Find-HtmlScriptEndTag -Html $Html -StartIndex $StartIndex
+    }
+
     $needle = "</$TagName"
     $searchIndex = $StartIndex
     while ($searchIndex -lt $Html.Length) {
@@ -81,6 +152,7 @@ function Find-HtmlRawTextEndTag([string]$Html, [string]$TagName, [int]$StartInde
 }
 
 function Remove-HtmlComments([string]$Html) {
+    # Bounded scanner for this repository's static contract; this is not a full HTML5 tokenizer.
     $output = New-Object System.Text.StringBuilder
     $index = 0
     $rawTextTag = $null
