@@ -366,6 +366,8 @@ function Remove-HtmlComments([string]$Html) {
                 }
 
                 if ($tag.bogus_comment) {
+                    # Keep discarded declarations and malformed tags from merging adjacent text.
+                    [void]$output.Append(' ')
                     $index = $tag.end + 1
                     if ($tag.incomplete) { break }
                     continue
