@@ -19,23 +19,105 @@ function Add-Failure([string]$Message) {
 }
 
 function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
-    $quote = [char]0
+    $state = 'before-attribute-name'
     for ($index = $StartIndex; $index -lt $Html.Length; $index++) {
         $character = $Html[$index]
-        if ($quote -ne [char]0) {
-            if ($character -eq $quote) { $quote = [char]0 }
+
+        if ($state -eq 'before-attribute-name') {
+            if ([char]::IsWhiteSpace($character)) { continue }
+            if ($character -eq '>') { return $index }
+            if ($character -eq '/') {
+                $state = 'self-closing-start-tag'
+                continue
+            }
+            $state = 'attribute-name'
             continue
         }
-        if ($character -eq [char]34 -or $character -eq [char]39) {
-            $quote = $character
+
+        if ($state -eq 'attribute-name') {
+            if ([char]::IsWhiteSpace($character)) {
+                $state = 'after-attribute-name'
+                continue
+            }
+            if ($character -eq '=') {
+                $state = 'before-attribute-value'
+                continue
+            }
+            if ($character -eq '>') { return $index }
+            continue
         }
-        elseif ($character -eq '>') {
-            return $index
+
+        if ($state -eq 'after-attribute-name') {
+            if ([char]::IsWhiteSpace($character)) { continue }
+            if ($character -eq '>') { return $index }
+            if ($character -eq '/') {
+                $state = 'self-closing-start-tag'
+                continue
+            }
+            if ($character -eq '=') {
+                $state = 'before-attribute-value'
+                continue
+            }
+            $state = 'attribute-name'
+            continue
+        }
+
+        if ($state -eq 'before-attribute-value') {
+            if ([char]::IsWhiteSpace($character)) { continue }
+            if ($character -eq '>') { return $index }
+            if ($character -eq [char]34) {
+                $state = 'attribute-value-double-quoted'
+                continue
+            }
+            if ($character -eq [char]39) {
+                $state = 'attribute-value-single-quoted'
+                continue
+            }
+            $state = 'attribute-value-unquoted'
+            continue
+        }
+
+        if ($state -eq 'attribute-value-double-quoted') {
+            if ($character -eq [char]34) { $state = 'after-attribute-value-quoted' }
+            continue
+        }
+
+        if ($state -eq 'attribute-value-single-quoted') {
+            if ($character -eq [char]39) { $state = 'after-attribute-value-quoted' }
+            continue
+        }
+
+        if ($state -eq 'attribute-value-unquoted') {
+            if ([char]::IsWhiteSpace($character)) {
+                $state = 'before-attribute-name'
+                continue
+            }
+            if ($character -eq '>') { return $index }
+            continue
+        }
+
+        if ($state -eq 'after-attribute-value-quoted') {
+            if ([char]::IsWhiteSpace($character)) {
+                $state = 'before-attribute-name'
+                continue
+            }
+            if ($character -eq '>') { return $index }
+            if ($character -eq '/') {
+                $state = 'self-closing-start-tag'
+                continue
+            }
+            $state = 'attribute-name'
+            continue
+        }
+
+        if ($state -eq 'self-closing-start-tag') {
+            if ($character -eq '>') { return $index }
+            $state = 'before-attribute-name'
+            continue
         }
     }
     return -1
 }
-
 function Find-HtmlBogusCommentEnd([string]$Html, [int]$StartIndex) {
     for ($index = $StartIndex; $index -lt $Html.Length; $index++) {
         if ($Html[$index] -eq '>') { return $index }
