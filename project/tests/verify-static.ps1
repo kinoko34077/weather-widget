@@ -101,6 +101,18 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $styleCommentMarker
     Invoke-Case -Name "style comment marker does not hide active manifest" -IndexPath $styleCommentMarker -ExpectedExitCode 1
 
+    $textareaCommentMarker = Join-Path $tempDir "textarea-comment-marker-active-manifest.html"
+    $textareaCommentMarkup = '<textarea><!--</textarea><link rel="manifest" href="manifest.webmanifest" /><!-- separator --></body>'
+    $current.Replace('</body>', $textareaCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $textareaCommentMarker
+    Invoke-Case -Name "textarea comment marker does not hide active manifest" -IndexPath $textareaCommentMarker -ExpectedExitCode 1
+
+    $titleCommentMarker = Join-Path $tempDir "title-comment-marker-active-service-worker.html"
+    $titleCommentMarkup = '<title><!--</title><script>navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
+    $current.Replace('</body>', $titleCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $titleCommentMarker
+    Invoke-Case -Name "title comment marker does not hide active service worker" -IndexPath $titleCommentMarker -ExpectedExitCode 1
+
     $attributeCommentMarker = Join-Path $tempDir "attribute-comment-marker-active-service-worker.html"
     $attributeCommentMarkup = '<div data-note="<!--"></div><script>navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
     $current.Replace('</body>', $attributeCommentMarkup) |

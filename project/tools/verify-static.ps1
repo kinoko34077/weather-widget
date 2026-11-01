@@ -133,7 +133,8 @@ function Remove-HtmlComments([string]$Html) {
                 if ($tagLength -gt 0) {
                     [void]$output.Append($Html, $index, $tagLength)
                 }
-                if (-not $tag.declaration -and -not $tag.closing -and -not $tag.incomplete -and $tag.name -in @('script', 'style')) {
+                $commentMarkersAreText = $tag.name -in @('script', 'style', 'title', 'textarea', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript')
+                if (-not $tag.declaration -and -not $tag.closing -and -not $tag.incomplete -and $commentMarkersAreText) {
                     $rawTextTag = $tag.name
                 }
                 $index = $tag.end + 1
