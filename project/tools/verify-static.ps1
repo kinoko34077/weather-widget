@@ -43,12 +43,49 @@ function Find-HtmlBogusCommentEnd([string]$Html, [int]$StartIndex) {
     return -1
 }
 
+function Find-HtmlStandardDoctypeEnd([string]$Html, [int]$StartIndex) {
+    if (-not (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype')) { return -1 }
+
+    $cursor = $StartIndex + 9
+    if ($cursor -ge $Html.Length -or -not [char]::IsWhiteSpace($Html[$cursor])) { return -1 }
+    while ($cursor -lt $Html.Length -and [char]::IsWhiteSpace($Html[$cursor])) { $cursor++ }
+
+    $nameStart = $cursor
+    while ($cursor -lt $Html.Length -and -not [char]::IsWhiteSpace($Html[$cursor]) -and $Html[$cursor] -ne '>') {
+        $cursor++
+    }
+    if ($cursor -eq $nameStart) { return -1 }
+    $name = $Html.Substring($nameStart, $cursor - $nameStart)
+    if ([string]::Compare($name, 'html', [System.StringComparison]::OrdinalIgnoreCase) -ne 0) { return -1 }
+
+    while ($cursor -lt $Html.Length -and [char]::IsWhiteSpace($Html[$cursor])) { $cursor++ }
+    if ($cursor -ge $Html.Length -or $Html[$cursor] -ne '>') { return -1 }
+    return $cursor
+}
+
 function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     $cursor = $StartIndex + 1
     if ($cursor -ge $Html.Length) { return $null }
 
     if ($Html[$cursor] -eq '!' -or $Html[$cursor] -eq '?') {
-        # Declarations never supply this static contract; discard through the tokenizer's first >.
+        $isDoctype = $false
+        $afterDoctypeIndex = $StartIndex + 9
+        if ($Html[$cursor] -eq '!' -and
+            (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype') -and
+            ($afterDoctypeIndex -ge $Html.Length -or
+             [char]::IsWhiteSpace($Html[$afterDoctypeIndex]) -or
+             $Html[$afterDoctypeIndex] -eq '>')) {
+            $isDoctype = $true
+        }
+
+        if ($isDoctype) {
+            $end = Find-HtmlStandardDoctypeEnd -Html $Html -StartIndex $StartIndex
+            if ($end -lt 0) {
+                return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; invalid_doctype = $true; incomplete = $true }
+            }
+            return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
+        }
+
         $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
         if ($end -lt 0) {
             return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true }
@@ -222,6 +259,11 @@ function Remove-HtmlComments([string]$Html) {
         if ($Html[$index] -eq '<') {
             $tag = Read-HtmlTag -Html $Html -StartIndex $index
             if ($null -ne $tag) {
+                if ($tag.invalid_doctype) {
+                    Add-Failure "DOCTYPE syntax is outside the supported static-verifier form"
+                    return $Html
+                }
+
                 if ($tag.bogus_comment) {
                     $index = $tag.end + 1
                     if ($tag.incomplete) { break }
