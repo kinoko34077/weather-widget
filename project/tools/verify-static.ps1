@@ -44,6 +44,10 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
                 continue
             }
             if ($character -eq '>') { return $index }
+            if ($character -eq '/') {
+                $state = 'self-closing-start-tag'
+                continue
+            }
             continue
         }
 
@@ -113,6 +117,7 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
         if ($state -eq 'self-closing-start-tag') {
             if ($character -eq '>') { return $index }
             $state = 'before-attribute-name'
+            $index--
             continue
         }
     }
