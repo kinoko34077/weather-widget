@@ -48,9 +48,26 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     if ($cursor -ge $Html.Length) { return $null }
 
     if ($Html[$cursor] -eq '!' -or $Html[$cursor] -eq '?') {
+        $isDoctype = $false
+        $afterDoctypeIndex = $StartIndex + 9
+        if ($Html[$cursor] -eq '!' -and
+            (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype') -and
+            $afterDoctypeIndex -lt $Html.Length) {
+            $nextCharacter = $Html[$afterDoctypeIndex]
+            $isDoctype = [char]::IsWhiteSpace($nextCharacter) -or $nextCharacter -eq '>'
+        }
+
+        if (-not $isDoctype) {
+            $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
+            if ($end -lt 0) {
+                return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true }
+            }
+            return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
+        }
+
         $end = Find-HtmlTagEnd -Html $Html -StartIndex $cursor
-        if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true } }
-        return @{ end = $end; name = ''; closing = $false; declaration = $true }
+        if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; incomplete = $true } }
+        return @{ end = $end; name = ''; closing = $false; declaration = $true; incomplete = $false }
     }
 
     $closing = $false
@@ -218,6 +235,12 @@ function Remove-HtmlComments([string]$Html) {
         if ($Html[$index] -eq '<') {
             $tag = Read-HtmlTag -Html $Html -StartIndex $index
             if ($null -ne $tag) {
+                if ($tag.bogus_comment) {
+                    $index = $tag.end + 1
+                    if ($tag.incomplete) { break }
+                    continue
+                }
+
                 $tagLength = $tag.end - $index + 1
                 if ($tagLength -gt 0) {
                     [void]$output.Append($Html, $index, $tagLength)
