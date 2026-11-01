@@ -61,8 +61,10 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
         $closing = $true
         $cursor++
         if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) {
-            # End-tag-open reconsumes this character in data state; let the outer scan do that.
-            return $null
+            # End-tag-open enters bogus-comment state and ends at the first >.
+            $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
+            if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true } }
+            return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
         }
     }
     if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) { return $null }
