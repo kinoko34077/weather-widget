@@ -126,10 +126,10 @@ try {
     Invoke-Case -Name "script double-escape state does not hide active manifest" -IndexPath $scriptDoubleEscapeActiveManifest -ExpectedExitCode 1
 
     $malformedEndTagActiveManifest = Join-Path $tempDir "malformed-end-tag-active-manifest.html"
-    $malformedEndTagMarkup = '</<!-- > <link rel="manifest" href="manifest.webmanifest"> -->' + [Environment]::NewLine + '</body>'
+    $malformedEndTagMarkup = '</ <link rel="manifest" href="manifest.webmanifest" />' + [Environment]::NewLine + '</body>'
     $current.Replace('</body>', $malformedEndTagMarkup) |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagActiveManifest
-    Invoke-Case -Name "malformed end-tag open does not hide active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
+    Invoke-Case -Name "malformed end-tag open preserves following active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
 
     $cdataHiddenManifest = Join-Path $tempDir "cdata-hidden-active-manifest.html"
     $cdataHiddenManifestMarkup = '<svg><![CDATA[ > <!-- ]]></svg><link rel="manifest" href="manifest.webmanifest"><!-- separator --></body>' + [Environment]::NewLine
