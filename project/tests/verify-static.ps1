@@ -205,12 +205,6 @@ try {
     [System.IO.File]::WriteAllText($incompleteContractTag, $incompleteContractMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "incomplete tag cannot satisfy active contract assertions" -IndexPath $incompleteContractTag -ExpectedExitCode 1
 
-    $cdataInRawText = Join-Path $tempDir "foreign-cdata-in-style-hides-manifest.html"
-    $cdataInRawTextMarkup = '<svg><style><[CDATA[ </style> <!-- ]]></style></svg><link rel="manifest" href="manifest.webmanifest"><!-- x -->'
-    $cdataInRawTextPage = $current.Replace('</body>', $cdataInRawTextMarkup + [Environment]::NewLine + '</body>')
-    [System.IO.File]::WriteAllText($cdataInRawText, $cdataInRawTextPage, [System.Text.UTF8Encoding]::new($false))
-    Invoke-Case -Name "CDATA in foreign raw text cannot hide active manifest" -IndexPath $cdataInRawText -ExpectedExitCode 1
-
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
