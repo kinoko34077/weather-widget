@@ -194,6 +194,23 @@ try {
     [System.IO.File]::WriteAllText($unicodeWhitespaceRawText, $unicodeWhitespaceRawTextMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "Unicode space does not start a textarea tag name" -IndexPath $unicodeWhitespaceRawText -ExpectedExitCode 1
 
+    $malformedEndTagActiveManifest = Join-Path $tempDir "malformed-end-tag-open-active-manifest.html"
+    $malformedEndTagActiveManifestMarkup = '</<!-- > <link rel="manifest" href="manifest.webmanifest"> -->'
+    $malformedEndTagActiveManifestPage = $current.Replace('</body>', $malformedEndTagActiveManifestMarkup + [Environment]::NewLine + '</body>')
+    [System.IO.File]::WriteAllText($malformedEndTagActiveManifest, $malformedEndTagActiveManifestPage, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "malformed end-tag bogus comment does not hide active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
+
+    $incompleteContractTag = Join-Path $tempDir "incomplete-tag-commented-contract.html"
+    $incompleteContractMarkup = '<div x="<a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' />'
+    [System.IO.File]::WriteAllText($incompleteContractTag, $incompleteContractMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "incomplete tag cannot satisfy active contract assertions" -IndexPath $incompleteContractTag -ExpectedExitCode 1
+
+    $cdataInRawText = Join-Path $tempDir "foreign-cdata-in-style-hides-manifest.html"
+    $cdataInRawTextMarkup = '<svg><style><[CDATA[ </style> <!-- ]]></style></svg><link rel="manifest" href="manifest.webmanifest"><!-- x -->'
+    $cdataInRawTextPage = $current.Replace('</body>', $cdataInRawTextMarkup + [Environment]::NewLine + '</body>')
+    [System.IO.File]::WriteAllText($cdataInRawText, $cdataInRawTextPage, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "CDATA in foreign raw text cannot hide active manifest" -IndexPath $cdataInRawText -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
