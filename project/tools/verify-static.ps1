@@ -367,6 +367,11 @@ function Remove-HtmlComments([string]$Html) {
                     continue
                 }
 
+                if ($tag.incomplete) {
+                    Add-Failure "Incomplete HTML tag cannot be safely checked by the static verifier"
+                    return $Html
+                }
+
                 $tagLength = $tag.end - $index + 1
                 if ($tagLength -gt 0) {
                     [void]$output.Append($Html, $index, $tagLength)
@@ -376,7 +381,6 @@ function Remove-HtmlComments([string]$Html) {
                     $rawTextTag = $tag.name
                 }
                 $index = $tag.end + 1
-                if ($tag.incomplete) { break }
                 continue
             }
         }
