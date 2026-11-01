@@ -325,10 +325,12 @@ function Remove-HtmlComments([string]$Html) {
         if ($index + 3 -lt $Html.Length -and $Html.Substring($index, 4) -ceq '<!--') {
             $contentStart = $index + 4
             if ($contentStart -lt $Html.Length -and $Html[$contentStart] -eq '>') {
+                [void]$output.Append(' ')
                 $index = $contentStart + 1
                 continue
             }
             if ($contentStart + 1 -lt $Html.Length -and $Html[$contentStart] -eq '-' -and $Html[$contentStart + 1] -eq '>') {
+                [void]$output.Append(' ')
                 $index = $contentStart + 2
                 continue
             }
@@ -345,6 +347,8 @@ function Remove-HtmlComments([string]$Html) {
             else {
                 $index = $bangEnd + 4
             }
+            # Keep adjacent text from merging into a token that never existed in the source.
+            [void]$output.Append(' ')
             continue
         }
 
