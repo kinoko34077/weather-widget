@@ -36,6 +36,13 @@ function Find-HtmlTagEnd([string]$Html, [int]$StartIndex) {
     return -1
 }
 
+function Find-HtmlBogusCommentEnd([string]$Html, [int]$StartIndex) {
+    for ($index = $StartIndex; $index -lt $Html.Length; $index++) {
+        if ($Html[$index] -eq '>') { return $index }
+    }
+    return -1
+}
+
 function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     $cursor = $StartIndex + 1
     if ($cursor -ge $Html.Length) { return $null }
@@ -50,6 +57,11 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     if ($Html[$cursor] -eq '/') {
         $closing = $true
         $cursor++
+        if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) {
+            $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
+            if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; incomplete = $true } }
+            return @{ end = $end; name = ''; closing = $false; declaration = $true; incomplete = $false }
+        }
     }
     if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) { return $null }
 

@@ -125,6 +125,12 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $scriptDoubleEscapeActiveManifest
     Invoke-Case -Name "script double-escape state does not hide active manifest" -IndexPath $scriptDoubleEscapeActiveManifest -ExpectedExitCode 1
 
+    $malformedEndTagActiveManifest = Join-Path $tempDir "malformed-end-tag-active-manifest.html"
+    $malformedEndTagMarkup = '</<!-- > <link rel="manifest" href="manifest.webmanifest"> -->' + [Environment]::NewLine + '</body>'
+    $current.Replace('</body>', $malformedEndTagMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagActiveManifest
+    Invoke-Case -Name "malformed end-tag open does not hide active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
