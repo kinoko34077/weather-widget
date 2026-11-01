@@ -152,6 +152,16 @@ try {
     [System.IO.File]::WriteAllText($malformedEndTagComment, $malformedEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "malformed end-tag bogus comment ends at first greater-than" -IndexPath $malformedEndTagComment -ExpectedExitCode 0
 
+    $nonAsciiEndTagComment = Join-Path $tempDir "non-ascii-end-tag-commented-contract.html"
+    $nonAsciiEndTagCommentMarkup = '</é <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/'' <script src=''https://weatherwidget.io/js/widget.min.js'' <link rel=''stylesheet'' href=''style.css''>'
+    [System.IO.File]::WriteAllText($nonAsciiEndTagComment, $nonAsciiEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "non-ASCII end-tag opener cannot expose contract text" -IndexPath $nonAsciiEndTagComment -ExpectedExitCode 1
+
+    $nonAsciiStartTag = Join-Path $tempDir "non-ascii-start-tag-cannot-supply-anchor.html"
+    $nonAsciiStartTagMarkup = [regex]::Replace($current, '(?is)<a\b.*?</a>', '<é class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</é>')
+    [System.IO.File]::WriteAllText($nonAsciiStartTag, $nonAsciiStartTagMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "non-ASCII start-tag opener cannot satisfy anchor" -IndexPath $nonAsciiStartTag -ExpectedExitCode 1
+
     $quotedDoctypeSystemId = Join-Path $tempDir "quoted-doctype-system-id-commented-contract.html"
     $quotedDoctypeSystemIdMarkup = '<!DOCTYPE html SYSTEM "id> <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' />">'
     [System.IO.File]::WriteAllText($quotedDoctypeSystemId, $quotedDoctypeSystemIdMarkup, [System.Text.UTF8Encoding]::new($false))
