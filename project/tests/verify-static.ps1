@@ -129,7 +129,7 @@ try {
     $malformedEndTagMarkup = '</ <link rel="manifest" href="manifest.webmanifest" />' + [Environment]::NewLine + '</body>'
     $current.Replace('</body>', $malformedEndTagMarkup) |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagActiveManifest
-    Invoke-Case -Name "malformed end-tag open preserves following active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
+    Invoke-Case -Name "malformed end-tag comment keeps manifest dormant" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 0
 
     $cdataHiddenManifest = Join-Path $tempDir "cdata-hidden-active-manifest.html"
     $cdataHiddenManifestMarkup = '<svg><![CDATA[ > <!-- ]]></svg><link rel="manifest" href="manifest.webmanifest"><!-- separator --></body>' + [Environment]::NewLine
@@ -150,7 +150,7 @@ try {
     $malformedEndTagComment = Join-Path $tempDir "malformed-end-tag-commented-contract.html"
     $malformedEndTagCommentMarkup = '</<!-- > <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
     [System.IO.File]::WriteAllText($malformedEndTagComment, $malformedEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
-    Invoke-Case -Name "malformed end-tag cannot truncate a following real comment" -IndexPath $malformedEndTagComment -ExpectedExitCode 1
+    Invoke-Case -Name "malformed end-tag bogus comment ends at first greater-than" -IndexPath $malformedEndTagComment -ExpectedExitCode 0
 
     $malformedDoctypeComment = Join-Path $tempDir "malformed-doctype-commented-contract.html"
     $malformedDoctypeCommentMarkup = '<!DOCTYPE "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
