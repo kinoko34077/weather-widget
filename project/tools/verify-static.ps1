@@ -210,6 +210,11 @@ function Remove-HtmlComments([string]$Html) {
             continue
         }
 
+        if (Test-HtmlPrefix -Html $Html -Index $index -Prefix '<![CDATA[') {
+            Add-Failure "CDATA section cannot be safely checked by the static verifier"
+            return $Html
+        }
+
         if ($Html[$index] -eq '<') {
             $tag = Read-HtmlTag -Html $Html -StartIndex $index
             if ($null -ne $tag) {
