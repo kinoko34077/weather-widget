@@ -36,6 +36,193 @@ try {
     ($current -replace '</body>', $serviceWorkerReplacement) |
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $serviceWorkerActivated
     Invoke-Case -Name "service-worker activation fails" -IndexPath $serviceWorkerActivated -ExpectedExitCode 1
+
+    $commentedAnchor = Join-Path $tempDir "commented-anchor.html"
+    [regex]::Replace($current, '(?is)(<a\b.*?</a>)', '<!--$1-->') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $commentedAnchor
+    Invoke-Case -Name "commented anchor and forecast target fail" -IndexPath $commentedAnchor -ExpectedExitCode 1
+
+    $commentedLoader = Join-Path $tempDir "commented-loader.html"
+    [regex]::Replace($current, '(?is)(<script\b[^>]*>.*?weatherwidget\.io/js/widget\.min\.js.*?</script>)', '<!--$1-->') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $commentedLoader
+    Invoke-Case -Name "commented loader fails" -IndexPath $commentedLoader -ExpectedExitCode 1
+
+    $commentedStylesheet = Join-Path $tempDir "commented-stylesheet.html"
+    $current.Replace('<link rel="stylesheet" href="style.css" />', '<!-- <link rel="stylesheet" href="style.css" /> -->') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $commentedStylesheet
+    Invoke-Case -Name "commented stylesheet fails" -IndexPath $commentedStylesheet -ExpectedExitCode 1
+
+    $commentBoundaryStylesheet = Join-Path $tempDir "comment-boundary-synthesized-stylesheet.html"
+    $commentBoundaryStylesheetMarkup = $current.Replace('<link rel="stylesheet" href="style.css" />', '<<!-- stylesheet removed -->link rel="stylesheet" href="style.css" />')
+    [System.IO.File]::WriteAllText($commentBoundaryStylesheet, $commentBoundaryStylesheetMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "comment removal cannot synthesize a stylesheet link" -IndexPath $commentBoundaryStylesheet -ExpectedExitCode 1
+
+    $bogusCommentBoundaryStylesheet = Join-Path $tempDir "bogus-comment-boundary-synthesized-stylesheet.html"
+    $bogusCommentBoundaryStylesheetMarkup = $current.Replace('<link rel="stylesheet" href="style.css" />', '<<!bogus>link rel="stylesheet" href="style.css" />')
+    [System.IO.File]::WriteAllText($bogusCommentBoundaryStylesheet, $bogusCommentBoundaryStylesheetMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "bogus comment removal cannot synthesize a stylesheet link" -IndexPath $bogusCommentBoundaryStylesheet -ExpectedExitCode 1
+
+    $unrelatedComment = Join-Path $tempDir "unrelated-comment.html"
+    $current.Replace('</body>', '<!-- unrelated note --></body>') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $unrelatedComment
+    Invoke-Case -Name "unrelated comment preserves active markup" -IndexPath $unrelatedComment -ExpectedExitCode 0
+
+    $unterminatedBeforeMarkup = Join-Path $tempDir "unterminated-before-markup.html"
+    ('<!--' + $current) | Set-Content -Encoding UTF8 -NoNewline -LiteralPath $unterminatedBeforeMarkup
+    Invoke-Case -Name "unterminated comment before markup fails closed" -IndexPath $unterminatedBeforeMarkup -ExpectedExitCode 1
+
+    $unterminatedAfterMarkup = Join-Path $tempDir "unterminated-after-markup.html"
+    ($current + '<!--') | Set-Content -Encoding UTF8 -NoNewline -LiteralPath $unterminatedAfterMarkup
+    Invoke-Case -Name "unterminated comment after active markup preserves checks" -IndexPath $unterminatedAfterMarkup -ExpectedExitCode 0
+
+    $commentedPwa = Join-Path $tempDir "commented-pwa.html"
+    $commentedPwaMarkup = '<!-- <link rel="manifest" href="manifest.webmanifest" /><script>navigator.serviceWorker.register("./service-worker.js");</script> -->' + [Environment]::NewLine + '</body>'
+    $current.Replace('</body>', $commentedPwaMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $commentedPwa
+    Invoke-Case -Name "commented PWA markup does not trigger activation checks" -IndexPath $commentedPwa -ExpectedExitCode 0
+
+    $emptyCommentManifest = Join-Path $tempDir "empty-comment-active-manifest.html"
+    $emptyCommentManifestMarkup = '<!--><link rel="manifest" href="manifest.webmanifest" /><!-- separator --></body>'
+    $current.Replace('</body>', $emptyCommentManifestMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $emptyCommentManifest
+    Invoke-Case -Name "empty comment before active manifest does not hide activation" -IndexPath $emptyCommentManifest -ExpectedExitCode 1
+
+    $emptyCommentServiceWorker = Join-Path $tempDir "empty-comment-active-service-worker.html"
+    $emptyCommentServiceWorkerMarkup = '<!---><script>navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
+    $current.Replace('</body>', $emptyCommentServiceWorkerMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $emptyCommentServiceWorker
+    Invoke-Case -Name "empty hyphen comment before active service worker does not hide activation" -IndexPath $emptyCommentServiceWorker -ExpectedExitCode 1
+
+    $bangClosedActiveManifest = Join-Path $tempDir "bang-closed-active-manifest.html"
+    $bangClosedManifestMarkup = '<!-- note --!><link rel="manifest" href="manifest.webmanifest" /><!-- separator --></body>'
+    $current.Replace('</body>', $bangClosedManifestMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $bangClosedActiveManifest
+    Invoke-Case -Name "bang-closed comment does not hide active manifest" -IndexPath $bangClosedActiveManifest -ExpectedExitCode 1
+
+    $scriptCommentMarker = Join-Path $tempDir "script-comment-marker-active-service-worker.html"
+    $scriptCommentMarkup = '<script>var marker = "<!--"; navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
+    $current.Replace('</body>', $scriptCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $scriptCommentMarker
+    Invoke-Case -Name "script comment marker does not hide active service worker" -IndexPath $scriptCommentMarker -ExpectedExitCode 1
+
+    $styleCommentMarker = Join-Path $tempDir "style-comment-marker-active-manifest.html"
+    $styleCommentMarkup = '<style>.marker::after { content: "<!--"; }</style><link rel="manifest" href="manifest.webmanifest" /><!-- separator --></body>'
+    $current.Replace('</body>', $styleCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $styleCommentMarker
+    Invoke-Case -Name "style comment marker does not hide active manifest" -IndexPath $styleCommentMarker -ExpectedExitCode 1
+
+    $textareaCommentMarker = Join-Path $tempDir "textarea-comment-marker-active-manifest.html"
+    $textareaCommentMarkup = '<textarea><!--</textarea><link rel="manifest" href="manifest.webmanifest" /><!-- separator --></body>'
+    $current.Replace('</body>', $textareaCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $textareaCommentMarker
+    Invoke-Case -Name "textarea comment marker does not hide active manifest" -IndexPath $textareaCommentMarker -ExpectedExitCode 1
+
+    $titleCommentMarker = Join-Path $tempDir "title-comment-marker-active-service-worker.html"
+    $titleCommentMarkup = '<title><!--</title><script>navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
+    $current.Replace('</body>', $titleCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $titleCommentMarker
+    Invoke-Case -Name "title comment marker does not hide active service worker" -IndexPath $titleCommentMarker -ExpectedExitCode 1
+
+    $attributeCommentMarker = Join-Path $tempDir "attribute-comment-marker-active-service-worker.html"
+    $attributeCommentMarkup = '<div data-note="<!--"></div><script>navigator.serviceWorker.register("./service-worker.js");</script><!-- separator --></body>'
+    $current.Replace('</body>', $attributeCommentMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $attributeCommentMarker
+    Invoke-Case -Name "attribute comment marker does not hide active service worker" -IndexPath $attributeCommentMarker -ExpectedExitCode 1
+
+    $scriptDoubleEscapeActiveManifest = Join-Path $tempDir "script-double-escape-active-manifest.html"
+    $scriptDoubleEscapeMarkup = '<script><!--<script></script><!-- </script><link rel="manifest" href="manifest.webmanifest"> --></script>' + [Environment]::NewLine + '</body>'
+    $current.Replace('</body>', $scriptDoubleEscapeMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $scriptDoubleEscapeActiveManifest
+    Invoke-Case -Name "script double-escape state does not hide active manifest" -IndexPath $scriptDoubleEscapeActiveManifest -ExpectedExitCode 1
+
+    $malformedEndTagActiveManifest = Join-Path $tempDir "malformed-end-tag-active-manifest.html"
+    $malformedEndTagMarkup = '</ <link rel="manifest" href="manifest.webmanifest" />' + [Environment]::NewLine + '</body>'
+    $current.Replace('</body>', $malformedEndTagMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagActiveManifest
+    Invoke-Case -Name "malformed end-tag comment keeps manifest dormant" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 0
+
+    $cdataHiddenManifest = Join-Path $tempDir "cdata-hidden-active-manifest.html"
+    $cdataHiddenManifestMarkup = '<svg><![CDATA[ > <!-- ]]></svg><link rel="manifest" href="manifest.webmanifest"><!-- separator --></body>' + [Environment]::NewLine
+    $current.Replace('</body>', $cdataHiddenManifestMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $cdataHiddenManifest
+    Invoke-Case -Name "CDATA content cannot hide active manifest" -IndexPath $cdataHiddenManifest -ExpectedExitCode 1
+
+    $bogusDeclarationComment = Join-Path $tempDir "bogus-declaration-commented-contract.html"
+    $bogusDeclarationCommentMarkup = '<!bogus "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
+    [System.IO.File]::WriteAllText($bogusDeclarationComment, $bogusDeclarationCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "bogus declaration cannot expose commented contract markup" -IndexPath $bogusDeclarationComment -ExpectedExitCode 1
+
+    $malformedEndTagAnchor = Join-Path $tempDir "malformed-end-tag-commented-anchor.html"
+    [regex]::Replace($current, '(?is)(<a\b.*?</a>)', '</ $1') |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagAnchor
+    Invoke-Case -Name "malformed end-tag open cannot expose commented anchor" -IndexPath $malformedEndTagAnchor -ExpectedExitCode 1
+
+    $malformedEndTagComment = Join-Path $tempDir "malformed-end-tag-commented-contract.html"
+    $malformedEndTagCommentMarkup = '</<!-- > <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
+    [System.IO.File]::WriteAllText($malformedEndTagComment, $malformedEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "malformed end-tag bogus comment ends at first greater-than" -IndexPath $malformedEndTagComment -ExpectedExitCode 0
+
+    $nonAsciiEndTagComment = Join-Path $tempDir "non-ascii-end-tag-commented-contract.html"
+    $nonAsciiEndTagCommentMarkup = '</é <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/'' <script src=''https://weatherwidget.io/js/widget.min.js'' <link rel=''stylesheet'' href=''style.css''>'
+    [System.IO.File]::WriteAllText($nonAsciiEndTagComment, $nonAsciiEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "non-ASCII end-tag opener cannot expose contract text" -IndexPath $nonAsciiEndTagComment -ExpectedExitCode 1
+
+    $quotedDoctypeSystemId = Join-Path $tempDir "quoted-doctype-system-id-commented-contract.html"
+    $quotedDoctypeSystemIdMarkup = '<!DOCTYPE html SYSTEM "id> <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' />">'
+    [System.IO.File]::WriteAllText($quotedDoctypeSystemId, $quotedDoctypeSystemIdMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "quoted doctype identifier cannot expose contract markup" -IndexPath $quotedDoctypeSystemId -ExpectedExitCode 1
+
+    $malformedDoctypeComment = Join-Path $tempDir "malformed-doctype-commented-contract.html"
+    $malformedDoctypeCommentMarkup = '<!DOCTYPE "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
+    [System.IO.File]::WriteAllText($malformedDoctypeComment, $malformedDoctypeCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "malformed doctype cannot expose commented contract markup" -IndexPath $malformedDoctypeComment -ExpectedExitCode 1
+
+    $unquotedAttributeQuote = Join-Path $tempDir "unquoted-attribute-quote-commented-contract.html"
+    $unquotedAttributeQuoteMarkup = '<div x=foo" ><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> -->'
+    [System.IO.File]::WriteAllText($unquotedAttributeQuote, $unquotedAttributeQuoteMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "quote in unquoted attribute cannot expose commented contract markup" -IndexPath $unquotedAttributeQuote -ExpectedExitCode 1
+
+    $selfClosingStartManifest = Join-Path $tempDir "self-closing-start-active-manifest.html"
+    $selfClosingStartManifestMarkup = '<div /b="x> <!-- "><link rel="manifest" href="manifest.webmanifest"> -->'
+    $selfClosingStartManifestPage = $current.Replace('</body>', $selfClosingStartManifestMarkup + [Environment]::NewLine + '</body>')
+    [System.IO.File]::WriteAllText($selfClosingStartManifest, $selfClosingStartManifestPage, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "self-closing start state reconsumes an active manifest" -IndexPath $selfClosingStartManifest -ExpectedExitCode 1
+
+    $slashAttributeName = Join-Path $tempDir "slash-after-attribute-name-commented-contract.html"
+    $slashAttributeNameMarkup = '<div a/ = ">  <!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> --> ">'
+    [System.IO.File]::WriteAllText($slashAttributeName, $slashAttributeNameMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "slash after attribute name cannot expose commented contract markup" -IndexPath $slashAttributeName -ExpectedExitCode 1
+
+    $nbsp = [char]0x00A0
+    $nbspUnquotedValue = Join-Path $tempDir "unicode-space-unquoted-attribute-value-commented-contract.html"
+    $nbspUnquotedValueMarkup = '<div x=' + $nbsp + '" ><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> -->'
+    [System.IO.File]::WriteAllText($nbspUnquotedValue, $nbspUnquotedValueMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "Unicode space stays in an unquoted attribute value" -IndexPath $nbspUnquotedValue -ExpectedExitCode 1
+
+    $unicodeWhitespaceRawText = Join-Path $tempDir "unicode-space-before-textarea-end.html"
+    $unicodeWhitespaceRawTextMarkup = '<textarea' + $nbsp + '><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> --></textarea' + $nbsp + '>'
+    [System.IO.File]::WriteAllText($unicodeWhitespaceRawText, $unicodeWhitespaceRawTextMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "Unicode space does not start a textarea tag name" -IndexPath $unicodeWhitespaceRawText -ExpectedExitCode 1
+
+    $malformedEndTagActiveManifest = Join-Path $tempDir "malformed-end-tag-open-active-manifest.html"
+    $malformedEndTagActiveManifestMarkup = '</<!-- > <link rel="manifest" href="manifest.webmanifest"> -->'
+    $malformedEndTagActiveManifestPage = $current.Replace('</body>', $malformedEndTagActiveManifestMarkup + [Environment]::NewLine + '</body>')
+    [System.IO.File]::WriteAllText($malformedEndTagActiveManifest, $malformedEndTagActiveManifestPage, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "malformed end-tag bogus comment does not hide active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
+
+    $incompleteContractTag = Join-Path $tempDir "incomplete-tag-commented-contract.html"
+    $incompleteContractMarkup = '<div x="<a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' />'
+    [System.IO.File]::WriteAllText($incompleteContractTag, $incompleteContractMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "incomplete tag cannot satisfy active contract assertions" -IndexPath $incompleteContractTag -ExpectedExitCode 1
+
+    $crlf = Join-Path $tempDir "crlf.html"
+    $crlfContent = $current.Replace("`n", "`r`n")
+    [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "CRLF input preserves active markup" -IndexPath $crlf -ExpectedExitCode 0
+
+    $empty = Join-Path $tempDir "empty.html"
+    [System.IO.File]::WriteAllText($empty, "", [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "empty input fails required markup checks" -IndexPath $empty -ExpectedExitCode 1
 }
 finally {
     Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
