@@ -174,7 +174,8 @@ try {
 
     $selfClosingStartManifest = Join-Path $tempDir "self-closing-start-active-manifest.html"
     $selfClosingStartManifestMarkup = '<div /b="x> <!-- "><link rel="manifest" href="manifest.webmanifest"> -->'
-    [System.IO.File]::WriteAllText($selfClosingStartManifest, $selfClosingStartManifestMarkup, [System.Text.UTF8Encoding]::new($false))
+    $selfClosingStartManifestPage = $current.Replace('</body>', $selfClosingStartManifestMarkup + [Environment]::NewLine + '</body>')
+    [System.IO.File]::WriteAllText($selfClosingStartManifest, $selfClosingStartManifestPage, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "self-closing start state reconsumes an active manifest" -IndexPath $selfClosingStartManifest -ExpectedExitCode 1
 
     $slashAttributeName = Join-Path $tempDir "slash-after-attribute-name-commented-contract.html"
