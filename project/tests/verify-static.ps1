@@ -147,6 +147,11 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagAnchor
     Invoke-Case -Name "malformed end-tag open cannot expose commented anchor" -IndexPath $malformedEndTagAnchor -ExpectedExitCode 1
 
+    $malformedEndTagComment = Join-Path $tempDir "malformed-end-tag-commented-contract.html"
+    $malformedEndTagCommentMarkup = '</<!-- > <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
+    [System.IO.File]::WriteAllText($malformedEndTagComment, $malformedEndTagCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "malformed end-tag cannot truncate a following real comment" -IndexPath $malformedEndTagComment -ExpectedExitCode 1
+
     $malformedDoctypeComment = Join-Path $tempDir "malformed-doctype-commented-contract.html"
     $malformedDoctypeCommentMarkup = '<!DOCTYPE "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
     [System.IO.File]::WriteAllText($malformedDoctypeComment, $malformedDoctypeCommentMarkup, [System.Text.UTF8Encoding]::new($false))
