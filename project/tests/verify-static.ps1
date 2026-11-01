@@ -131,6 +131,12 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $malformedEndTagActiveManifest
     Invoke-Case -Name "malformed end-tag open does not hide active manifest" -IndexPath $malformedEndTagActiveManifest -ExpectedExitCode 1
 
+    $cdataHiddenManifest = Join-Path $tempDir "cdata-hidden-active-manifest.html"
+    $cdataHiddenManifestMarkup = '<svg><![CDATA[ > <!-- ]]></svg><link rel="manifest" href="manifest.webmanifest"><!-- separator --></body>' + [Environment]::NewLine
+    $current.Replace('</body>', $cdataHiddenManifestMarkup) |
+        Set-Content -Encoding UTF8 -NoNewline -LiteralPath $cdataHiddenManifest
+    Invoke-Case -Name "CDATA content cannot hide active manifest" -IndexPath $cdataHiddenManifest -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
