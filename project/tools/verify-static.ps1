@@ -63,6 +63,11 @@ function Find-HtmlStandardDoctypeEnd([string]$Html, [int]$StartIndex) {
     return $cursor
 }
 
+function Test-HtmlAsciiAlpha([char]$Character) {
+    $code = [int]$Character
+    return ($code -ge 65 -and $code -le 90) -or ($code -ge 97 -and $code -le 122)
+}
+
 function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     $cursor = $StartIndex + 1
     if ($cursor -ge $Html.Length) { return $null }
@@ -97,14 +102,14 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     if ($Html[$cursor] -eq '/') {
         $closing = $true
         $cursor++
-        if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) {
+        if ($cursor -ge $Html.Length -or -not (Test-HtmlAsciiAlpha -Character $Html[$cursor])) {
             # End-tag-open enters bogus-comment state and ends at the first >.
             $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
             if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true } }
             return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
         }
     }
-    if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) { return $null }
+    if ($cursor -ge $Html.Length -or -not (Test-HtmlAsciiAlpha -Character $Html[$cursor])) { return $null }
 
     $nameStart = $cursor
     while ($cursor -lt $Html.Length -and -not [char]::IsWhiteSpace($Html[$cursor]) -and $Html[$cursor] -ne '/' -and $Html[$cursor] -ne '>') {
