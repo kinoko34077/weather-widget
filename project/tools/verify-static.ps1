@@ -48,26 +48,12 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
     if ($cursor -ge $Html.Length) { return $null }
 
     if ($Html[$cursor] -eq '!' -or $Html[$cursor] -eq '?') {
-        $isDoctype = $false
-        $afterDoctypeIndex = $StartIndex + 9
-        if ($Html[$cursor] -eq '!' -and
-            (Test-HtmlPrefix -Html $Html -Index $StartIndex -Prefix '<!doctype') -and
-            $afterDoctypeIndex -lt $Html.Length) {
-            $nextCharacter = $Html[$afterDoctypeIndex]
-            $isDoctype = [char]::IsWhiteSpace($nextCharacter) -or $nextCharacter -eq '>'
+        # Declarations never supply this static contract; discard through the tokenizer's first >.
+        $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
+        if ($end -lt 0) {
+            return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true }
         }
-
-        if (-not $isDoctype) {
-            $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
-            if ($end -lt 0) {
-                return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true }
-            }
-            return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
-        }
-
-        $end = Find-HtmlTagEnd -Html $Html -StartIndex $cursor
-        if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; incomplete = $true } }
-        return @{ end = $end; name = ''; closing = $false; declaration = $true; incomplete = $false }
+        return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
     }
 
     $closing = $false
@@ -76,8 +62,8 @@ function Read-HtmlTag([string]$Html, [int]$StartIndex) {
         $cursor++
         if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) {
             $end = Find-HtmlBogusCommentEnd -Html $Html -StartIndex $cursor
-            if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; incomplete = $true } }
-            return @{ end = $end; name = ''; closing = $false; declaration = $true; incomplete = $false }
+            if ($end -lt 0) { return @{ end = $Html.Length - 1; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $true } }
+            return @{ end = $end; name = ''; closing = $false; declaration = $true; bogus_comment = $true; incomplete = $false }
         }
     }
     if ($cursor -ge $Html.Length -or -not [char]::IsLetter($Html[$cursor])) { return $null }
@@ -181,7 +167,7 @@ function Find-HtmlRawTextEndTag([string]$Html, [string]$TagName, [int]$StartInde
 }
 
 function Remove-HtmlComments([string]$Html) {
-    # Bounded scanner for this repository's static contract; this is not a full HTML5 tokenizer.
+    # Bounded scanner for comment stripping; not a full HTML5 tokenizer or DOM/namespace validator.
     $output = New-Object System.Text.StringBuilder
     $index = 0
     $rawTextTag = $null
