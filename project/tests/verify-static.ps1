@@ -167,6 +167,11 @@ try {
     [System.IO.File]::WriteAllText($malformedDoctypeComment, $malformedDoctypeCommentMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "malformed doctype cannot expose commented contract markup" -IndexPath $malformedDoctypeComment -ExpectedExitCode 1
 
+    $unquotedAttributeQuote = Join-Path $tempDir "unquoted-attribute-quote-commented-contract.html"
+    $unquotedAttributeQuoteMarkup = '<div x=foo" ><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> -->'
+    [System.IO.File]::WriteAllText($unquotedAttributeQuote, $unquotedAttributeQuoteMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "quote in unquoted attribute cannot expose commented contract markup" -IndexPath $unquotedAttributeQuote -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
