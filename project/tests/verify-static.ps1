@@ -184,15 +184,15 @@ try {
     Invoke-Case -Name "slash after attribute name cannot expose commented contract markup" -IndexPath $slashAttributeName -ExpectedExitCode 1
 
     $nbsp = [char]0x00A0
-    $unicodeWhitespaceRawText = Join-Path $tempDir "unicode-space-before-textarea-end.html"
-    $unicodeWhitespaceRawTextMarkup = '<textarea' + $nbsp + '><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> --></textarea' + $nbsp + '>'
-    [System.IO.File]::WriteAllText($unicodeWhitespaceRawText, $unicodeWhitespaceRawTextMarkup, [System.Text.UTF8Encoding]::new($false))
-    Invoke-Case -Name "Unicode space does not start a textarea tag name" -IndexPath $unicodeWhitespaceRawText -ExpectedExitCode 1
-
     $nbspUnquotedValue = Join-Path $tempDir "unicode-space-unquoted-attribute-value-commented-contract.html"
     $nbspUnquotedValueMarkup = '<div x=' + $nbsp + '" ><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> -->'
     [System.IO.File]::WriteAllText($nbspUnquotedValue, $nbspUnquotedValueMarkup, [System.Text.UTF8Encoding]::new($false))
     Invoke-Case -Name "Unicode space stays in an unquoted attribute value" -IndexPath $nbspUnquotedValue -ExpectedExitCode 1
+
+    $unicodeWhitespaceRawText = Join-Path $tempDir "unicode-space-before-textarea-end.html"
+    $unicodeWhitespaceRawTextMarkup = '<textarea' + $nbsp + '><!-- <a class=''weatherwidget-io'' href=''https://forecast7.com/ja/35d69139d69/tokyo/''>Tokyo</a><script src=''https://weatherwidget.io/js/widget.min.js''></script><link rel=''stylesheet'' href=''style.css'' /> --></textarea' + $nbsp + '>'
+    [System.IO.File]::WriteAllText($unicodeWhitespaceRawText, $unicodeWhitespaceRawTextMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "Unicode space does not start a textarea tag name" -IndexPath $unicodeWhitespaceRawText -ExpectedExitCode 1
 
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
