@@ -137,6 +137,11 @@ try {
         Set-Content -Encoding UTF8 -NoNewline -LiteralPath $cdataHiddenManifest
     Invoke-Case -Name "CDATA content cannot hide active manifest" -IndexPath $cdataHiddenManifest -ExpectedExitCode 1
 
+    $bogusDeclarationComment = Join-Path $tempDir "bogus-declaration-commented-contract.html"
+    $bogusDeclarationCommentMarkup = '<!bogus "><!-- <a class="weatherwidget-io" href="https://forecast7.com/ja/35d69139d69/tokyo/">Tokyo</a><script src="https://weatherwidget.io/js/widget.min.js"></script><link rel="stylesheet" href="style.css" /><!-- separator -->'
+    [System.IO.File]::WriteAllText($bogusDeclarationComment, $bogusDeclarationCommentMarkup, [System.Text.UTF8Encoding]::new($false))
+    Invoke-Case -Name "bogus declaration cannot expose commented contract markup" -IndexPath $bogusDeclarationComment -ExpectedExitCode 1
+
     $crlf = Join-Path $tempDir "crlf.html"
     $crlfContent = $current.Replace("`n", "`r`n")
     [System.IO.File]::WriteAllText($crlf, $crlfContent, [System.Text.UTF8Encoding]::new($false))
